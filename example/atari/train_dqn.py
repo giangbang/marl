@@ -1,6 +1,8 @@
 import argparse
 import os
 import pprint
+from copy import deepcopy
+from typing import Optional, Tuple
 
 import gymnasium as gym
 from pettingzoo.atari import boxing_v2

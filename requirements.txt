@@ -1,4 +1,5 @@
---upgrade pip
+AutoROM
+autorom[accept-rom-license]
 tianshou
 setuptools==67.8.*
 Box2D
