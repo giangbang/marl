@@ -1,0 +1,7 @@
+--upgrade pip
+tianshou
+setuptools==67.8.*
+Box2D
+box2d-py
+pettingzoo[all]
+packaging
