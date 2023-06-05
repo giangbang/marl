@@ -22,6 +22,8 @@ from tianshou.policy import (
     RandomPolicy,
 )
 
+from .atari_wrapper import get_env
+
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -39,7 +41,7 @@ def get_args():
     parser.add_argument('--step-per-collect', type=int, default=100)
     parser.add_argument('--update-per-step', type=float, default=0.01)
     parser.add_argument('--batch-size', type=int, default=64)
-    parser.add_argument('--hidden-sizes', type=int, nargs='*', default=[128])
+    parser.add_argument('--hidden-sizes', type=int, nargs='*', default=128)
     parser.add_argument(
         '--dueling-q-hidden-sizes', type=int, nargs='*', default=[128, 128]
     )
@@ -85,18 +87,23 @@ def get_agents(
     agent_opponent: Optional[BasePolicy] = None,
     optim: Optional[torch.optim.Optimizer] = None,
 ) -> Tuple[BasePolicy, torch.optim.Optimizer, list]:
-    env = get_env()
+    # dummy env
+    env = get_env(args.task)
+    print(env.observation_space)
     observation_space = env.observation_space['observation'] if isinstance(
         env.observation_space, gym.spaces.Dict
     ) else env.observation_space
-    
+    args.action_shape = env.action_space.shape or env.action_space.n
+    print(observation_space.shape)
     if agent_learn is None:
         # model
-        net = Net(
-            args.state_shape,
+        from .atari_network import DQN
+        net = DQN(
+            *observation_space.shape,
             args.action_shape,
-            hidden_sizes=args.hidden_sizes,
-            device=args.device
+            device=args.device,
+            features_only=True,
+            output_dim=args.hidden_sizes,
         ).to(args.device)
         if optim is None:
             optim = torch.optim.Adam(net.parameters(), lr=args.lr)
@@ -107,8 +114,8 @@ def get_agents(
             args.n_step,
             target_update_freq=args.target_update_freq
         )
-        if args.resume_path:
-            agent_learn.load_state_dict(torch.load(args.resume_path))
+        # if args.resume_path:
+        #     agent_learn.load_state_dict(torch.load(args.resume_path))
 
     if agent_opponent is None:
         if args.opponent_path:
@@ -141,7 +148,7 @@ def train_agent(
 
     # ======== agent setup =========
     policy, optim, agents = get_agents(
-        args, agent_learn=agent_learn, agent_opponent=agent_opponent, optim=optim
+        args, args, agent_learn=agent_learn, agent_opponent=agent_opponent, optim=optim
     )
 
     # ======== collector setup =========
@@ -156,7 +163,7 @@ def train_agent(
     train_collector.collect(n_step=args.batch_size * args.training_num)
 
     # ======== tensorboard logging setup =========
-    log_path = os.path.join(args.logdir, 'tic_tac_toe', 'dqn')
+    log_path = os.path.join(args.logdir, args.task, 'dqn')
     writer = SummaryWriter(log_path)
     writer.add_text("args", str(args))
     logger = TensorboardLogger(writer)

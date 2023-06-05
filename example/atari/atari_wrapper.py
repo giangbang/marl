@@ -8,7 +8,6 @@ def grayscale_v0(env):
     def change_obs(obs, obs_space):
         import cv2
         obs = cv2.cvtColor(obs, cv2.COLOR_RGB2GRAY)
-        obs = obs.reshape(obs_space.shape)
         return obs
 
     def change_space(space):
@@ -26,7 +25,7 @@ def get_env(env_name, clip_reward=False, render_mode="rgb_array"):
     env = supersuit.frame_skip_v0(env, 4)
     env = grayscale_v0(env)  # TODO: check bug in grayscale
     env = supersuit.resize_v1(env, 84, 84)
-    env = supersuit.frame_stack_v1(env, 4)
+    env = supersuit.frame_stack_v2(env, 4, 0)
     if clip_reward:
         env = supersuit.clip_reward_v0(env)
         
